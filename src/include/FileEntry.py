@@ -19,9 +19,10 @@ class FileEntry:
     checksum: str
     size: int
     datasource: FileEntrySource = FileEntrySource.TARGET
-    linked_descriptions = list  # type : DescriptionLUA
+    linked_descriptions: list  # type : list[DescriptionLUA]
 
     def __init__(self, basepath: str, _relpath: str, _filename: str, sourceonly: bool = False):
+        self.linked_descriptions = [] # putting this into class definition means it's static
         self.bfilename = _filename
         self.relpath = _relpath
         self.size = os.stat(os.path.join(basepath, _relpath, _filename)).st_size
@@ -49,8 +50,12 @@ class FileEntry:
 
     @property
     def relfilename(self):
-        return os.path.join(self.relpath, self.bfilename)
+        return os.fsdecode(os.path.join(self.relpath, self.bfilename))
 
     @property
     def filename(self):
         return os.fsdecode(self.bfilename)
+
+    @property
+    def hashsize(self):
+        return str(self.size) + ":" + self.checksum
