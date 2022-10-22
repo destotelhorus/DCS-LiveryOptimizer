@@ -1,3 +1,4 @@
+import ntpath
 import os
 import re
 from re import Match
@@ -17,6 +18,7 @@ class DescriptionLUATextureEntry:
         self.name = _match.group(1)
         self.texturefile = _match.group(3)
         self.descriptionLUA = _descriptionLUA
+        self.fileentry = None
 
     def __repr__(self):
         return "{{name: \"{}\", texturefile: \"{}\"}}".format(
@@ -25,24 +27,44 @@ class DescriptionLUATextureEntry:
         )
 
     @property
+    def relativetexturefile(self):
+        if not self.fileentry:
+            return self.texturefile
+        else:
+            return os.path.relpath(os.path.splitext(self.fileentry.relfilename)[0], os.fsdecode(self.descriptionLUA.fileentry.relpath))
+
+    def convertPathToUnix(self, path: str):
+        import pathlib
+        p = pathlib.PureWindowsPath(path)
+        return p.as_posix()
+
+    def convertPathToWin(self, path: str):
+        return path.replace('/', '\\\\')
+
+    @property
     def relfilename(self):
-        return os.path.normpath(os.path.join(os.fsdecode(self.descriptionLUA.fileentry.relpath), self.texturefile + ".DDS"))
+        return os.path.normpath(os.path.join(os.fsdecode(self.descriptionLUA.fileentry.relpath), self.convertPathToUnix(self.texturefile)))
 class DescriptionLUA:
     rInnerMatches = r"{\s*\"([^\"]*)\"\s*,\s*(\S*)\s*,\s*\"([^\"]*)\"\s*,\s*(\S*)\s*}"
-    rLiveryBlock = r"livery\s*=\s*{((?:[^{}]*{[^}]+}\s*;)+[^{}]*)}"
+    rLiveryBlock = r".*livery\s*=\s*{((?:[^{}]*{[^}]+}\s*[;,])+[^{}]*)}"
 
     fileentry: FileEntry
     content: str
     filematches : list  # type: list[DescriptionLUATextureEntry]
     liveryblock_startindex = 0
 
+    def generateModifiedDescriptionLUA(self) -> str:
+        newcontent = self.content
+        for fm in reversed(self.filematches):
+            fm : DescriptionLUATextureEntry = fm
+            newcontent = newcontent[:(self.liveryblock_startindex+fm.match.start(3))] + fm.convertPathToWin(fm.relativetexturefile) + newcontent[(self.liveryblock_startindex+fm.match.end(3)):]
+        return newcontent
+
     def __init__(self, basepath: str, _fileentry: FileEntry):
         self.fileentry = _fileentry
         file = open(os.path.join(basepath, os.fsencode(_fileentry.relfilename)), "r")
         self.content = file.read()
         file.close()
-
-
 
         liveryblock = re.match(self.rLiveryBlock, self.content, re.IGNORECASE | re.MULTILINE | re.DOTALL)
         if not liveryblock:

@@ -53,6 +53,10 @@ class FileEntry:
         return os.fsdecode(os.path.join(self.relpath, self.bfilename))
 
     @property
+    def relfilenamenoext(self):
+        return os.path.splitext(os.fsdecode(os.path.join(self.relpath, self.bfilename)))[0]
+
+    @property
     def filename(self):
         return os.fsdecode(self.bfilename)
 
