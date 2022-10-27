@@ -111,10 +111,13 @@ def parse_files(fileentries: dict, source_path: str, target_path: str):
         logging.info("  going through \"%s\"", desc.fileentry.relfilename)
         for livery in desc.filematches:
             livery: DescriptionLUATextureEntry = livery
+            livery_relfilename_lower = livery.relfilename.lower()
+            if len(os.path.splitext(livery_relfilename_lower)[1]) < 5:
+                livery_relfilename_lower = os.path.splitext(livery_relfilename_lower)[0]
             # trying to find a FileEntry for that liveryTexture
-            if livery.relfilename.lower() in fileentries['bypath']:
-                logging.info("    trying to look up for \"%s\". FOUND!", livery.relfilename.lower())
-                liveryFE = fileentries['bypath'][livery.relfilename.lower()]  # type: FileEntry
+            if livery_relfilename_lower in fileentries['bypath']:
+                logging.info("    trying to look up for \"%s\". FOUND!", livery_relfilename_lower)
+                liveryFE = fileentries['bypath'][livery_relfilename_lower]  # type: FileEntry
                 liveryFEdedup = find_best_dedup(fileentries, liveryFE.hashsize)
                 if liveryFE != liveryFEdedup and liveryFE.relfilename != liveryFEdedup.relfilename:
                     logging.info("    substituting \"%s\" with \"%s\".", liveryFE.relfilename, liveryFEdedup.relfilename)
@@ -123,9 +126,9 @@ def parse_files(fileentries: dict, source_path: str, target_path: str):
                 livery.fileentry = fileentries['bypath'][os.path.splitext(liveryFEdedup.relfilename)[0].lower()]
             else:
                 logging.warning("    trying to look up for \"%s\". NOT FOUND! Trying in old livery pack.", livery.relfilename.lower())
-                if livery.relfilename.lower() in fileentries['src_bypath']:
+                if livery_relfilename_lower in fileentries['src_bypath']:
                     logging.info("    file found in old livery pack!")
-                    tmpFE = fileentries['src_bypath'][livery.relfilename.lower()]  # type: FileEntry
+                    tmpFE = fileentries['src_bypath'][livery_relfilename_lower]  # type: FileEntry
                     tmpFEdedup = find_best_dedup(fileentries, tmpFE.hashsize)
                     if tmpFE != tmpFEdedup and tmpFE.relfilename != tmpFEdedup.relfilename:
                         logging.info("    substituting \"%s\" with \"%s\".", livery.relfilename, tmpFEdedup.relfilename)
@@ -151,11 +154,12 @@ def savezips(fileentries: dict, source_path: str, target_path: str, prefix: str,
                     logging.info("Adding \"%s\" to total-zip as \"%s\"", src_fullpath, f.relfilename)
                     if not dontwrite:
                         full_archive.writestr(zinfo_or_arcname=f.relfilename, data=gen_desc_lua)
-                    # todo: multithread this later
-                    if f.datasource == FileEntrySource.TARGET:
-                        logging.info("Adding \"%s\" to update-zip as \"%s\"", src_fullpath, f.relfilename)
-                        if not dontwrite:
-                            update_archive.writestr(zinfo_or_arcname=f.relfilename, data=gen_desc_lua)
+                    if gen_desc_lua != f.linked_descriptions[0].content:
+                        # todo: multithread this later
+                        if f.datasource == FileEntrySource.TARGET:
+                            logging.info("Adding \"%s\" to update-zip as \"%s\"", src_fullpath, f.relfilename)
+                            if not dontwrite:
+                                update_archive.writestr(zinfo_or_arcname=f.relfilename, data=gen_desc_lua)
                 elif len(f.linked_descriptions) > 0:
                     src_path = source_path if f.datasource == FileEntrySource.SOURCE else target_path
                     src_fullpath = os.path.join(src_path, f.relfilename)
