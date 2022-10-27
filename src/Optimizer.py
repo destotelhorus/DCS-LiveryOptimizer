@@ -79,8 +79,8 @@ def parse_files(fileentries: dict, source_path: str, target_path: str):
 
     logging.info("++ building simple source tree")
     for l1file in os.listdir(sourcedir):  # level: model
-        # if not os.fsdecode(l1file).startswith('F-14'):  # todo: remove
-        #     continue
+        if not os.fsdecode(l1file).startswith('SA'):  # todo: remove
+            continue
         if os.path.isdir(os.path.join(sourcedir, l1file)):
             logging.info("stepping into model %s", l1file)
             for l2file in os.listdir(os.path.join(sourcedir, l1file)):  # level: livery
@@ -92,8 +92,8 @@ def parse_files(fileentries: dict, source_path: str, target_path: str):
     logging.info("++ building fileentry and description tree")
     for l1file in os.listdir(targetdir):  # level: model
         if os.path.isdir(os.path.join(targetdir, l1file)):
-            # if not os.fsdecode(l1file).startswith('F-14'):  # todo: remove
-            #     continue
+            if not os.fsdecode(l1file).startswith('SA'):  # todo: remove
+                continue
             logging.info("stepping into model %s", l1file)
             for l2file in os.listdir(os.path.join(targetdir, l1file)):  # level: livery
                 logging.info("  stepping into livery %s", l2file)

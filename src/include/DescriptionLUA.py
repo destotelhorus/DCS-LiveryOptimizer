@@ -33,6 +33,13 @@ class DescriptionLUATextureEntry:
         else:
             return os.path.relpath(os.path.splitext(self.fileentry.relfilename)[0], os.fsdecode(self.descriptionLUA.fileentry.relpath))
 
+    @property
+    def relativetexturefilewithext(self):
+        if not self.fileentry:
+            return self.texturefile
+        else:
+            return os.path.relpath(self.fileentry.relfilename, os.fsdecode(self.descriptionLUA.fileentry.relpath))
+
     def convertPathToUnix(self, path: str):
         import pathlib
         p = pathlib.PureWindowsPath(path)
@@ -57,7 +64,10 @@ class DescriptionLUA:
         newcontent = self.content
         for fm in reversed(self.filematches):
             fm : DescriptionLUATextureEntry = fm
-            newcontent = newcontent[:(self.liveryblock_startindex+fm.match.start(3))] + fm.convertPathToWin(fm.relativetexturefile) + newcontent[(self.liveryblock_startindex+fm.match.end(3)):]
+            if fm.fileentry and len(os.path.splitext(fm.texturefile)[1]) < 5 and fm.fileentry.filename.lower() == fm.texturefile.lower():
+                newcontent = newcontent[:(self.liveryblock_startindex + fm.match.start(3))] + fm.convertPathToWin(fm.relativetexturefilewithext) + newcontent[(self.liveryblock_startindex + fm.match.end(3)):]
+            else:
+                newcontent = newcontent[:(self.liveryblock_startindex+fm.match.start(3))] + fm.convertPathToWin(fm.relativetexturefile) + newcontent[(self.liveryblock_startindex+fm.match.end(3)):]
         return newcontent
 
     def __init__(self, basepath: str, _fileentry: FileEntry):
